@@ -1,0 +1,291 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<TestFlow>
+  <CkSum>956AAC5BDF79660004D10A493303087A</CkSum>
+  <new>
+    <string name="COMPort">
+      <action class="this" func="ReadINI">
+        <filename>Setting</filename>
+        <option>DUT</option>
+        <key>COMPort</key>
+        <defaultval>COM3</defaultval>
+      </action>
+    </string>
+    <string name="Prompt_WNC">
+      <action class="this" func="ReadINI">
+        <filename>Setting</filename>
+        <option>Prompt</option>
+        <key>WNC</key>
+        <defaultval>#</defaultval>
+      </action>
+    </string>
+    <string name="Prompt_Uboot">
+      <action class="this" func="ReadINI">
+        <filename>Setting</filename>
+        <option>Prompt</option>
+        <key>Uboot</key>
+        <defaultval>ZynqMP></defaultval>
+      </action>
+    </string>
+    <string name="Linux_IP">
+      <action class="this" func="ReadINI">
+        <filename>Setting</filename>
+        <option>LinuxPC</option>
+        <key>IP</key>
+        <defaultval>192.168.33.124</defaultval>
+      </action>
+    </string>
+    <string name="Linux_Pwd">
+      <action class="this" func="ReadINI">
+        <filename>Setting</filename>
+        <option>LinuxPC</option>
+        <key>Password</key>
+        <defaultval>test!@#$</defaultval>
+      </action>
+    </string>
+  </new>
+  <run>
+    <!-- Start TFTP server. -->
+    <action class="this" func="StartTftpServer">
+    </action>
+    <!-- SW3DIPSwitch -->
+    <action class="this" func="ShowImageCheck">
+      <testItem>SW3DIPSwitch</testItem>
+      <message>請確認DIP Switch,Please check the DIP Switch</message>
+      <mode>Check</mode>
+    </action>
+    <!-- BootUp -->
+    <action class="this" func="ShowImageCheck">
+      <testItem>InsertDUT</testItem>
+      <message>請將DUT插入Linux PC並接上線材. Please plugin the DUT to Linux PC and connect the cables.</message>
+      <mode>Prompt</mode>
+    </action>
+    <!-- BootUp 
+    <action class="this" func="ShowCheckMessageBox">
+      <testItem>BootUp</testItem>
+      <caption>Notice</caption>
+      <content>請按OK後將DUT上電. Press OK and Power On the DUT.</content>
+    </action>-->
+    <!-- BootUp -->
+    <action class="this" func="ShowImageCheck" nextdelay="3">
+      <testItem>BootUp</testItem>
+      <message>請按V後將DUT上電. Press V and Power On the DUT.</message>
+      <mode>Prompt</mode>
+    </action>
+    <!-- Init ComPort -->
+    <action class="console" func="InitCOMPort" retry="3">
+    </action>
+    <!-- StopAtUboot -->
+    <action class="console" func="StopAtUboot">
+      <testItem>UbootCheck</testItem>
+    </action>
+    <!-- print ENV variables-->
+    <action class="console" func="SendAndCheck">
+      <testItem>UbootCheck</testItem>
+      <data>print</data>
+      <checkMsg ref="Prompt_Uboot">bootcmd=run default_bootcmd,bootenv=uEnv.txt,default_bootcmd=run uenvboot; run cp_kernel2ram &amp;&amp; bootm,importbootenv=echo &quot;Importing environment from SD</checkMsg>
+      <timeOutSec>20</timeOutSec>
+    </action>
+    <!-- eMMC SLC Mode-->
+    <action class="console" func="SendAndCheck">
+      <testItem>eMMCSLCCheck</testItem>
+      <data>mmc info</data>
+      <checkMsg ref="Prompt_Uboot">Capacity: 3.6 GiB,User Capacity: 3.6 GiB ENH WRREL,User Enhanced Start: 0 Bytes,User Enhanced Size: 3.6 GiB</checkMsg>
+      <timeOutSec>20</timeOutSec>
+    </action>
+    <!-- bootm  -->
+    <action class="console" func="UbootToKernel">
+      <testItem>BootUp</testItem>
+    </action>
+    <!-- EthernetTest: ifconfig -->
+    <action class="console" func="SendAndCheck">
+      <testItem>EthernetTest</testItem>
+      <data>ifconfig</data>
+      <checkMsg ref="Prompt_WNC">192.168.33.</checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- EthernetTest: ping -->
+    <action class="console" func="SendAndCheck">
+      <testItem>EthernetTest</testItem>
+      <data>ping 192.168.33.60 -c 10</data>
+      <checkMsg ref="Prompt_WNC">10 packets received,0% packet loss </checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- Stop test program -->
+    <action class="console" func="SendAndCheck">
+      <testItem>StandaloneTest</testItem>
+      <data>sh /run/media/mmcblk0p1/scripts/stop_gsi_cli_test_app.sh</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OCP change -->
+    <action class="console" func="SendAndCheck">
+      <testItem>SetOCP</testItem>
+      <data>i2cset -f -y 1 0x19 0x46 0xea80 w</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OCW change -->
+    <action class="console" func="SendAndCheck">
+      <testItem>SetOCW</testItem>
+      <data>i2cset -f -y 1 0x19 0x4a 0xea40 w</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OTP change -->
+    <action class="console" func="SendAndCheck">
+      <testItem>SetOTP</testItem>
+      <data>i2cset -f -y 1 0x19 0x4f 0xeb98 w</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <action class="console" func="SendAndCheck">
+      <testItem>SetOTP</testItem>
+      <data>i2cset -f -y 1 0x19 0x21 0x2000 w</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- Set Value -->
+    <action class="console" func="SendAndCheck">
+      <testItem>SetI2CValue</testItem>
+      <data>i2cset -f -y 1 0x19 0x15</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OCP change -->
+    <action class="console" func="SendAndCheck">
+      <testItem>SetOCP</testItem>
+      <data>i2cset -f -y 1 0x1A 0x46 0xea80 w</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OCW change -->
+    <action class="console" func="SendAndCheck">
+      <testItem>SetOCW</testItem>
+      <data>i2cset -f -y 1 0x1A 0x4a 0xea40 w</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OTP change -->
+    <action class="console" func="SendAndCheck">
+      <testItem>SetOTP</testItem>
+      <data>i2cset -f -y 1 0x1A 0x4f 0xeb98 w</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <action class="console" func="SendAndCheck">
+      <testItem>SetOTP</testItem>
+      <data>i2cset -f -y 1 0x1A 0x21 0x2000 w</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- Set Value -->
+    <action class="console" func="SendAndCheck">
+      <testItem>SetI2CValue</testItem>
+      <data>i2cset -f -y 1 0x1A 0x15</data>
+      <checkMsg ref="Prompt_WNC"></checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OCP check -->
+    <action class="console" func="SendAndCheck">
+      <testItem>CheckOCP</testItem>
+      <data>i2cget -f -y 1 0x19 0x46 w</data>
+      <checkMsg ref="Prompt_WNC">0xea80</checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OCW check -->
+    <action class="console" func="SendAndCheck">
+      <testItem>CheckOCW</testItem>
+      <data>i2cget -f -y 1 0x19 0x4a w</data>
+      <checkMsg ref="Prompt_WNC">0xea40</checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OTP check -->
+    <action class="console" func="SendAndCheck">
+      <testItem>CheckOTP</testItem>
+      <data>i2cget -f -y 1 0x19 0x4f w</data>
+      <checkMsg ref="Prompt_WNC">0xeb98</checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <action class="console" func="SendAndCheck">
+      <testItem>CheckOTP</testItem>
+      <data>i2cget -f -y 1 0x19 0x21 w</data>
+      <checkMsg ref="Prompt_WNC">0x2000</checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OCP check -->
+    <action class="console" func="SendAndCheck">
+      <testItem>CheckOCP</testItem>
+      <data>i2cget -f -y 1 0x1A 0x46 w</data>
+      <checkMsg ref="Prompt_WNC">0xea80</checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OCW check -->
+    <action class="console" func="SendAndCheck">
+      <testItem>CheckOCW</testItem>
+      <data>i2cget -f -y 1 0x1A 0x4a w</data>
+      <checkMsg ref="Prompt_WNC">0xea40</checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- OTP check -->
+    <action class="console" func="SendAndCheck">
+      <testItem>CheckOTP</testItem>
+      <data>i2cget -f -y 1 0x1A 0x4f w</data>
+      <checkMsg ref="Prompt_WNC">0xeb98</checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <action class="console" func="SendAndCheck">
+      <testItem>CheckOTP</testItem>
+      <data>i2cget -f -y 1 0x1A 0x21 w</data>
+      <checkMsg ref="Prompt_WNC">0x2000</checkMsg>
+      <timeOutSec>10</timeOutSec>
+    </action>
+    <!-- Power Rails Check -->
+    <action class="console" func="PowerRailsCheck">
+      <testItem>PowerRails</testItem>
+    </action>
+    <!-- SoftwareCheck: Check Software Version -->
+    <action class="console" func="SoftwareCheck">
+      <testItem>SoftwareCheck</testItem>
+    </action>
+    <!-- StandaloneTest -->
+    <action class="console" func="TargetTest">
+      <testItem>StandaloneTest</testItem>
+    </action>
+    <!-- MAC setting: execute target-get -->
+    <action class="console" func="WriteMAC">
+      <testItem>WriteMAC</testItem>
+    </action>
+    <!-- Serial number setting: execute target-get -->
+    <action class="console" func="WriteSN">
+      <testItem>WriteSN</testItem>
+    </action>
+    <!-- Board Type setting: execute target-get -->
+    <action class="console" func="WriteBoardType">
+      <testItem>WriteBoardType</testItem>
+    </action>
+    <!-- Save Env : execute target-get -->
+    <action class="console" func="SaveEnv">
+      <testItem>SaveEnv</testItem>
+    </action>
+    <!-- MAC and Serial number and Board type check -->
+    <action class="console" func="CheckBoardENV">
+      <testItem>CheckBoardENV</testItem>
+    </action>
+    <!-- Voltage check -->
+    <action class="console" func="VoltageCheck">
+      <testItem>VoltageCheck</testItem>
+    </action>
+    <!-- I2C device list check: execute target-get  -->
+    <action class="console" func="I2CCheck">
+      <testItem>I2CCheck</testItem>
+    </action>
+    <!-- RTC test -->
+    <action class="this" func="RTCTest">
+      <testItem>RTCTest</testItem>
+    </action>
+    <!-- UART test -->
+    <action class="console" func="UARTTest">
+      <testItem>UARTTest</testItem>
+    </action>
+  </run>
+</TestFlow>
